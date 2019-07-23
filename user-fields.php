@@ -12,10 +12,23 @@
  */
 
 function itilium_profile_parts($itilium_user, $itilium_password) {
+    $itilium_URL = get_option('itilium_URL');
     ?>
     <h3><?php esc_html_e( 'Itilium Authentication', 'itilium' ); ?></h3>
 
     <table class="form-table">
+        <tr>
+            <th><label for="itilium_URL"><?php esc_html_e( 'Itilium URL', 'itilium' ); ?></th>
+            <td>
+                <input type="text"
+                       id="itilium_URL"
+                       name="itilium_URL"
+                       value="<?php echo esc_attr($itilium_URL); ?>"
+                       class="regular-text"
+                       readonly
+                />
+            </td>
+        </tr>
         <tr>
             <th><label for="itilium_user"><?php esc_html_e( 'Itilium User', 'itilium' ); ?></th>
             <td>
