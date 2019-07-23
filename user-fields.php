@@ -8,53 +8,6 @@
 // Оригинальный код здесь - https://www.cssigniter.com/how-to-add-a-custom-user-field-in-wordpress/
 
 /**
- * Front end registration
- */
-
-add_action( 'register_form', 'crf_registration_form' );
-function crf_registration_form() {
-
-    $year = ! empty( $_POST['year_of_birth'] ) ? intval( $_POST['year_of_birth'] ) : '';
-
-    ?>
-    <p>
-        <label for="year_of_birth"><?php esc_html_e( 'Year of birth', 'crf' ) ?><br/>
-            <input type="number"
-                   min="1900"
-                   max="2017"
-                   step="1"
-                   id="year_of_birth"
-                   name="year_of_birth"
-                   value="<?php echo esc_attr( $year ); ?>"
-                   class="input"
-            />
-        </label>
-    </p>
-    <?php
-}
-
-add_filter( 'registration_errors', 'crf_registration_errors', 10, 3 );
-function crf_registration_errors( $errors, $sanitized_user_login, $user_email ) {
-
-    if ( empty( $_POST['year_of_birth'] ) ) {
-        $errors->add( 'year_of_birth_error', __( '<strong>ERROR</strong>: Please enter your year of birth.', 'crf' ) );
-    }
-
-    if ( ! empty( $_POST['year_of_birth'] ) && intval( $_POST['year_of_birth'] ) < 1900 ) {
-        $errors->add( 'year_of_birth_error', __( '<strong>ERROR</strong>: You must be born after 1900.', 'crf' ) );
-    }
-
-    return $errors;
-}
-
-add_action( 'user_register', 'crf_user_register' );
-function crf_user_register( $user_id ) {
-    if ( ! empty( $_POST['year_of_birth'] ) ) {
-        update_user_meta( $user_id, 'year_of_birth', intval( $_POST['year_of_birth'] ) );
-    }
-}
-
-/**
  * Back end registration
  */
 
