@@ -13,3 +13,5 @@ Version: 1.0
 Author: Валерий Булаш
 Author URI: http://web-artisan.pro
 */
+
+include 'user-fields.php';  // Включаем дополнительные поля в профиль пользователя
