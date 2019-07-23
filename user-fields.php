@@ -11,91 +11,78 @@
  * Back end registration
  */
 
-add_action( 'user_new_form', 'crf_admin_registration_form' );
-function crf_admin_registration_form( $operation ) {
+function itilium_profile_parts($itilium_user, $itilium_password) {
+    ?>
+    <h3><?php esc_html_e( 'Itilium Authentication', 'itilium' ); ?></h3>
+
+    <table class="form-table">
+        <tr>
+            <th><label for="itilium_user"><?php esc_html_e( 'Itilium User', 'itilium' ); ?></th>
+            <td>
+                <input type="text"
+                       id="itilium_user"
+                       name="itilium_user"
+                       value="<?php echo esc_attr($itilium_user); ?>"
+                       class="regular-text"/>
+            </td>
+        </tr>
+        <tr>
+            <th><label for="itilium_password"><?php esc_html_e( 'Itilium User Password', 'itilium' ); ?></th>
+            <td>
+                <input type="password"
+                       id="itilium_password"
+                       name="itilium_password"
+                       value="<?php echo esc_attr($itilium_password); ?>"
+                       class="regular-text"/>
+            </td>
+        </tr>
+    </table>
+    <?php
+
+    // TODO: Сделать кнопку (функционал) Test Itilium Connection
+}
+
+add_action('user_new_form', function($operation) {
+    // Только при добавлении нового пользователя
     if ( 'add-new-user' !== $operation ) {
         // $operation may also be 'add-existing-user'
         return;
     }
 
-    $year = ! empty( $_POST['year_of_birth'] ) ? intval( $_POST['year_of_birth'] ) : '';
+    $itilium_user = !empty($_POST['itilium_user']) ? $_POST['itilium_user'] : '';
+    $itilium_password = !empty($_POST['itilium_password']) ? $_POST['itilium_password'] : '';
+    itilium_profile_parts($itilium_user, $itilium_password);
+});
 
-    ?>
-    <h3><?php esc_html_e( 'Personal Information', 'crf' ); ?></h3>
+// Только контроль ввода, без коннекта к Itilium
+add_action( 'user_profile_update_errors', function ($errors, $update, $user) {
+    return true;
 
-    <table class="form-table">
-        <tr>
-            <th><label for="year_of_birth"><?php esc_html_e( 'Year of birth', 'crf' ); ?></label> <span class="description"><?php esc_html_e( '(required)', 'crf' ); ?></span></th>
-            <td>
-                <input type="number"
-                       min="1900"
-                       max="2017"
-                       step="1"
-                       id="year_of_birth"
-                       name="year_of_birth"
-                       value="<?php echo esc_attr( $year ); ?>"
-                       class="regular-text"
-                />
-            </td>
-        </tr>
-    </table>
-    <?php
-}
-
-add_action( 'user_profile_update_errors', 'crf_user_profile_update_errors', 10, 3 );
-function crf_user_profile_update_errors( $errors, $update, $user ) {
-    if ( empty( $_POST['year_of_birth'] ) ) {
-        $errors->add( 'year_of_birth_error', __( '<strong>ERROR</strong>: Please enter your year of birth.', 'crf' ) );
-    }
-
-    if ( ! empty( $_POST['year_of_birth'] ) && intval( $_POST['year_of_birth'] ) < 1900 ) {
-        $errors->add( 'year_of_birth_error', __( '<strong>ERROR</strong>: You must be born after 1900.', 'crf' ) );
-    }
-}
-
-add_action( 'edit_user_created_user', 'crf_user_register' );
-
+}, 10, 3 );
 
 /**
  * Back end display
  */
 
-add_action( 'show_user_profile', 'crf_show_extra_profile_fields' );
-add_action( 'edit_user_profile', 'crf_show_extra_profile_fields' );
-
-function crf_show_extra_profile_fields( $user ) {
-    $year = get_the_author_meta( 'year_of_birth', $user->ID );
-    ?>
-    <h3><?php esc_html_e( 'Personal Information', 'crf' ); ?></h3>
-
-    <table class="form-table">
-        <tr>
-            <th><label for="year_of_birth"><?php esc_html_e( 'Year of birth', 'crf' ); ?></label></th>
-            <td>
-                <input type="number"
-                       min="1900"
-                       max="2017"
-                       step="1"
-                       id="year_of_birth"
-                       name="year_of_birth"
-                       value="<?php echo esc_attr( $year ); ?>"
-                       class="regular-text"
-                />
-            </td>
-        </tr>
-    </table>
-    <?php
+add_action( 'show_user_profile', 'itl_show_extra_profile_fields' );
+add_action( 'edit_user_profile', 'itl_show_extra_profile_fields' );
+function itl_show_extra_profile_fields($user) {
+    $itilium_user = get_the_author_meta('itilium_user', $user->ID);
+    $itilium_password = get_the_author_meta('itilium_password', $user->ID);
+    itilium_profile_parts($itilium_user, $itilium_password);
 }
 
-add_action( 'personal_options_update', 'crf_update_profile_fields' );
-add_action( 'edit_user_profile_update', 'crf_update_profile_fields' );
-
-function crf_update_profile_fields( $user_id ) {
+add_action( 'personal_options_update', 'itl_update_profile_fields' );
+add_action( 'edit_user_profile_update', 'itl_update_profile_fields' );
+function itl_update_profile_fields($user_id) {
     if ( ! current_user_can( 'edit_user', $user_id ) ) {
         return false;
     }
+    // TODO: проверка коннекта к Itilium и выставление ошибок, если неверные данные
+    // TODO: если логин к Itilium пустой - проверку коннекта не делаем
 
-    if ( ! empty( $_POST['year_of_birth'] ) && intval( $_POST['year_of_birth'] ) >= 1900 ) {
-        update_user_meta( $user_id, 'year_of_birth', intval( $_POST['year_of_birth'] ) );
+    if (!empty($_POST['itilium_user'])) {
+        update_user_meta($user_id, 'itilium_user', $_POST['itilium_user']);
+        update_user_meta($user_id, 'itilium_password', $_POST['itilium_password']);
     }
 }
