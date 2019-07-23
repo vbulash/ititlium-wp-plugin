@@ -11,5 +11,5 @@ Plugin URI: http://страница_с_описанием_плагина_и_ег
 Description: Интеграция Wordpress и 1С Итилиум
 Version: 1.0
 Author: Валерий Булаш
-Author URI: http://страница_автора_плагина
+Author URI: http://web-artisan.pro
 */
