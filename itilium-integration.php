@@ -14,6 +14,11 @@ Author: Валерий Булаш
 Author URI: http://web-artisan.pro
 */
 
+define("BASE_PATH", plugin_dir_path(__FILE__));
+
+// include the Composer autoload file
+require BASE_PATH . 'vendor/autoload.php';
+
 use Backend\Settings\OptionsMenu;
 
 // Добавляем страницу настроек интеграции с Ititlium
