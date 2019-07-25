@@ -14,6 +14,7 @@ Author: Валерий Булаш
 Author URI: http://web-artisan.pro
 */
 
+/*
 define("BASE_PATH", plugin_dir_path(__FILE__));
 
 // include the Composer autoload file
@@ -24,15 +25,6 @@ use Backend\Settings\OptionsMenu;
 // Добавляем страницу настроек интеграции с Ititlium
 add_action('admin_init', function () {
     // Меню работает, но сама страница нет
-    /*
-    add_options_page(
-        'Интеграция с 1С Итилиум',
-        'Интеграция с 1С Итилиум',
-        'manage_options',
-        'itilium-settings',
-        'render_itilium_options'
-    );
-    */
     // TODO: Опция назначается напрямую только для отладки, нужно вводить на странице настроек
     add_option('itilium_URL', 'http://1c.sys-admin.su/Itilium/hs/mobiledata/');
     //
@@ -40,3 +32,4 @@ add_action('admin_init', function () {
 });
 
 new OptionsMenu();
+*/
