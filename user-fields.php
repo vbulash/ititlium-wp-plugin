@@ -11,14 +11,19 @@
  * Back end registration
  */
 
-function itilium_profile_parts($itilium_user, $itilium_password) {
+function itilium_profile_parts($itilium_user, $itilium_password)
+{
     $itilium_URL = get_option('itilium_URL');
     ?>
-    <h3><?php esc_html_e( 'Itilium Authentication', 'itilium' ); ?></h3>
+    <h3><?php esc_html_e('Itilium Authentication', 'itilium'); ?></h3>
 
     <table class="form-table">
         <tr>
-            <th><label for="itilium_URL"><?php esc_html_e( 'Itilium URL', 'itilium' ); ?></th>
+            <th>
+                <input type="hidden" id="ajax_handler" value="<?php echo esc_url(admin_url('admin-post.php'));?>"/>
+                <input type="hidden" name="itilium_test_action" id="itilium_test_action" value="itilium_test"/>
+                <label for="itilium_URL"><?php esc_html_e('Itilium URL', 'itilium'); ?>
+            </th>
             <td>
                 <input type="text"
                        id="itilium_URL"
@@ -30,7 +35,7 @@ function itilium_profile_parts($itilium_user, $itilium_password) {
             </td>
         </tr>
         <tr>
-            <th><label for="itilium_user"><?php esc_html_e( 'Itilium User', 'itilium' ); ?></th>
+            <th><label for="itilium_user"><?php esc_html_e('Itilium User', 'itilium'); ?></th>
             <td>
                 <input type="text"
                        id="itilium_user"
@@ -40,7 +45,7 @@ function itilium_profile_parts($itilium_user, $itilium_password) {
             </td>
         </tr>
         <tr>
-            <th><label for="itilium_password"><?php esc_html_e( 'Itilium User Password', 'itilium' ); ?></th>
+            <th><label for="itilium_password"><?php esc_html_e('Itilium User Password', 'itilium'); ?></th>
             <td>
                 <input type="password"
                        id="itilium_password"
@@ -49,15 +54,27 @@ function itilium_profile_parts($itilium_user, $itilium_password) {
                        class="regular-text"/>
             </td>
         </tr>
+        <tr>
+            <th>&nbsp;</th>
+            <td>
+                <input type="button"
+                       id="itilium_connect"
+                       name="itilium_connect"
+                       value="<?php esc_html_e('Test Itilium Connection', 'itilium'); ?>"
+                       class="button button-secondary"
+                       onclick="test_connection();"
+                />
+            </td>
+        </tr>
     </table>
     <?php
 
     // TODO: Сделать кнопку (функционал) Test Itilium Connection
 }
 
-add_action('user_new_form', function($operation) {
+add_action('user_new_form', function ($operation) {
     // Только при добавлении нового пользователя
-    if ( 'add-new-user' !== $operation ) {
+    if ('add-new-user' !== $operation) {
         // $operation may also be 'add-existing-user'
         return;
     }
@@ -68,27 +85,29 @@ add_action('user_new_form', function($operation) {
 });
 
 // Только контроль ввода, без коннекта к Itilium
-add_action( 'user_profile_update_errors', function ($errors, $update, $user) {
+add_action('user_profile_update_errors', function ($errors, $update, $user) {
     return true;
 
-}, 10, 3 );
+}, 10, 3);
 
 /**
  * Back end display
  */
 
-add_action( 'show_user_profile', 'itl_show_extra_profile_fields' );
-add_action( 'edit_user_profile', 'itl_show_extra_profile_fields' );
-function itl_show_extra_profile_fields($user) {
+add_action('show_user_profile', 'itl_show_extra_profile_fields');
+add_action('edit_user_profile', 'itl_show_extra_profile_fields');
+function itl_show_extra_profile_fields($user)
+{
     $itilium_user = get_the_author_meta('itilium_user', $user->ID);
     $itilium_password = get_the_author_meta('itilium_password', $user->ID);
     itilium_profile_parts($itilium_user, $itilium_password);
 }
 
-add_action( 'personal_options_update', 'itl_update_profile_fields' );
-add_action( 'edit_user_profile_update', 'itl_update_profile_fields' );
-function itl_update_profile_fields($user_id) {
-    if ( ! current_user_can( 'edit_user', $user_id ) ) {
+add_action('personal_options_update', 'itl_update_profile_fields');
+add_action('edit_user_profile_update', 'itl_update_profile_fields');
+function itl_update_profile_fields($user_id)
+{
+    if (!current_user_can('edit_user', $user_id)) {
         return false;
     }
     // TODO: проверка коннекта к Itilium и выставление ошибок, если неверные данные
