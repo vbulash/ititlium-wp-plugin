@@ -18,6 +18,10 @@ define("BASE_PATH", plugin_dir_path(__FILE__));
 require BASE_PATH . 'vendor/autoload.php';
 
 use Backend\Settings\OptionsMenu;
+use Backend\Connection;
+
+//(new Connection())->init();
+//$connection->init();
 
 // Добавляем страницу настроек интеграции с Ititlium
 add_action('plugins_loaded', function () {
@@ -25,6 +29,8 @@ add_action('plugins_loaded', function () {
     // TODO: Опция назначается напрямую только для отладки, нужно вводить на странице настроек
     add_option('itilium_URL', 'http://1c.sys-admin.su/Itilium/hs/mobiledata/');
     //
+
+    (new Connection())->init();
 
     include 'user-fields.php';  // Включаем дополнительные поля в профиль пользователя
 
