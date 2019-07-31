@@ -37,34 +37,24 @@ class Connection
 
     public function init()
     {
-        add_action('admin_post_nopriv_itilium_test', [$this, 'test']);
-        add_action('admin_post_itilium_test', [$this, 'test']);
-        add_action('admin_notices', [$this, 'notice']);
+        add_action('wp_ajax_itilium_test', [$this, 'test']);
     }
 
     // TODO: отладить отображение сообщений
     public function notice()
     {
-        if (!isset($this->message)) return;  // Нечего отображать
+        if (!isset($this->message)) return null;  // Нечего отображать
 
-        $classes = 'notice is-dismissible ';
-        switch ($this->messageType) {
-            case self::INFO:
-                $classes .= 'notice-success';
-                break;
-            case self::WARNING:
-                $classes .= 'notice-warning';
-                break;
-            case self::ERROR:
-                $classes .= 'notice-error';
-                break;
-        }
-
-        $message = (isset($this->messageHeader) ? $this->messageHeader . ':<br/>' : '') . $this->message;
-        echo "<div class=\"$classes\"><p>$message</p></div>";
+        $result = json_encode([
+            'message_type' => $this->messageType,
+            'message_header' => $this->messageHeader,
+            'message' => $this->message
+        ]);
 
         unset($this->messageHeader);
         unset($this->message);
+
+        return $result;
     }
 
     private function connect()
@@ -85,7 +75,7 @@ class Connection
         $data = file_get_contents($this->URL . 'authenticate', false, $this->context);
         if ($data === false) {
             $this->messageType = self::ERROR;
-            $this->message = error_get_last()['message'];
+            $this->message = error_get_last()['message'] . "<br/>Проверьте корректность URL, логина и пароля";
             return false;
         }
 
@@ -102,7 +92,8 @@ class Connection
         if ($this->connect()) {
             $this->message = 'Успешное соединение с сервером';
         }
-        do_action('admin_notices');
+        echo $this->notice();
+        wp_die();
     }
 }
 

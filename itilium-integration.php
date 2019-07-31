@@ -17,27 +17,25 @@ Author URI: http://web-artisan.pro
 define("BASE_PATH", plugin_dir_path(__FILE__));
 require BASE_PATH . 'vendor/autoload.php';
 
-use Backend\Settings\OptionsMenu;
+use Backend\Options;
 use Backend\Connection;
-
-//(new Connection())->init();
-//$connection->init();
 
 // Добавляем страницу настроек интеграции с Ititlium
 add_action('plugins_loaded', function () {
-    // Меню работает, но сама страница нет
-    // TODO: Опция назначается напрямую только для отладки, нужно вводить на странице настроек
-    add_option('itilium_URL', 'http://1c.sys-admin.su/Itilium/hs/mobiledata/');
-    //
+    if(!is_admin()) return;
 
     (new Connection())->init();
 
     include 'user-fields.php';  // Включаем дополнительные поля в профиль пользователя
 
-    new OptionsMenu();
+    new Options();  // Пункт меню и страница настроек
 });
 
 add_action('admin_enqueue_scripts', function () {
+    if(!is_admin()) return;
+
+    //if(!is_page('profile')) return; // Только для профиля пользователя
+
     wp_enqueue_script('jquery-ui-core');
     wp_enqueue_script('jquery-ui-widget');
     wp_enqueue_script('jquery-ui-mouse');
@@ -50,6 +48,11 @@ add_action('admin_enqueue_scripts', function () {
         plugin_dir_url(__FILE__) . 'assets/js/itilium-test.js',
         array('jquery'),
         false,
-        true);
+        true)
+    ;
+
+    wp_enqueue_style('bootstrap_css', 'https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css');
+    wp_enqueue_script('popper_js', 'https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js', array('jquery'));
+    wp_enqueue_script('bootstrap_js', 'https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js', array('jquery'));
 });
 

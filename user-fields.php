@@ -15,14 +15,14 @@ function itilium_profile_parts($itilium_user, $itilium_password)
 {
     $itilium_URL = get_option('itilium_URL');
     ?>
-    <h3><?php esc_html_e('Itilium Authentication', 'itilium'); ?></h3>
+    <h3><?php esc_html_e('Данные коннекта Итилиум', 'itilium'); ?></h3>
 
     <table class="form-table">
         <tr>
             <th>
-                <input type="hidden" id="ajax_handler" value="<?php echo esc_url(admin_url('admin-post.php'));?>"/>
+                <input type="hidden" id="ajax_handler" value="<?php echo esc_url(admin_url('admin-ajax.php')); ?>"/>
                 <input type="hidden" name="itilium_test_action" id="itilium_test_action" value="itilium_test"/>
-                <label for="itilium_URL"><?php esc_html_e('Itilium URL', 'itilium'); ?>
+                <label for="itilium_URL"><?php esc_html_e('URL Итилиум', 'itilium'); ?>
             </th>
             <td>
                 <input type="text"
@@ -32,10 +32,12 @@ function itilium_profile_parts($itilium_user, $itilium_password)
                        class="regular-text"
                        readonly
                 />
+                <p class="description">URL 1С Итилиум вводится в настройках и распространяется на всех пользователей
+                    данного сайта</p>
             </td>
         </tr>
         <tr>
-            <th><label for="itilium_user"><?php esc_html_e('Itilium User', 'itilium'); ?></th>
+            <th><label for="itilium_user"><?php esc_html_e('Логин Итилиум', 'itilium'); ?></th>
             <td>
                 <input type="text"
                        id="itilium_user"
@@ -45,7 +47,7 @@ function itilium_profile_parts($itilium_user, $itilium_password)
             </td>
         </tr>
         <tr>
-            <th><label for="itilium_password"><?php esc_html_e('Itilium User Password', 'itilium'); ?></th>
+            <th><label for="itilium_password"><?php esc_html_e('Пароль Итилиум', 'itilium'); ?></th>
             <td>
                 <input type="password"
                        id="itilium_password"
@@ -60,16 +62,15 @@ function itilium_profile_parts($itilium_user, $itilium_password)
                 <input type="button"
                        id="itilium_connect"
                        name="itilium_connect"
-                       value="<?php esc_html_e('Test Itilium Connection', 'itilium'); ?>"
+                       value="<?php esc_html_e('Тест коннекта к Итилиуму', 'itilium'); ?>"
                        class="button button-secondary"
-                       onclick="test_connection();"
                 />
             </td>
         </tr>
     </table>
+    <div id="itilium_test_preloader" class="spinner" style="display: none"></div>
+    <div id="message_area"></div>
     <?php
-
-    // TODO: Сделать кнопку (функционал) Test Itilium Connection
 }
 
 add_action('user_new_form', function ($operation) {
@@ -110,8 +111,6 @@ function itl_update_profile_fields($user_id)
     if (!current_user_can('edit_user', $user_id)) {
         return false;
     }
-    // TODO: проверка коннекта к Itilium и выставление ошибок, если неверные данные
-    // TODO: если логин к Itilium пустой - проверку коннекта не делаем
 
     if (!empty($_POST['itilium_user'])) {
         update_user_meta($user_id, 'itilium_user', $_POST['itilium_user']);
