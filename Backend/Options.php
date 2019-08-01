@@ -76,6 +76,12 @@ class Options
 
         register_setting(
             'itilium_group',    // Группа опций
+            'itilium_list',      // Страница для списка инцидентов
+            [$this, 'list_sanitize']        // Очистка ввода
+        );
+
+        register_setting(
+            'itilium_group',    // Группа опций
             'itilium_details',      // Страница для отображения единичного инцидента
             [$this, 'details_sanitize']        // Очистка ввода
         );
@@ -109,8 +115,17 @@ class Options
 
         // Поле ввода страницы списка инцидентов в секции itilium_page_section_id
         add_settings_field(
+            'list',
+            'Страница отображения списка инцидентов:',
+            [$this, 'list_callback'],
+            'itilium-setting-admin',
+            'itilium_page_section_id'
+        );
+
+        // Поле ввода страницы отображения инцидента в секции itilium_page_section_id
+        add_settings_field(
             'details',
-            'Страница отображения инцидента:',
+            'Страница отображения деталей инцидента:',
             [$this, 'details_callback'],
             'itilium-setting-admin',
             'itilium_page_section_id'
@@ -131,6 +146,15 @@ class Options
         }
 
         return $new_input;
+    }
+
+    /**
+     * Очистка введенной страницы списка инцидентов, если это необходимо
+     * @param string $input Страница для очистки (sanitize)
+     */
+    public function list_sanitize($input)
+    {
+        return $input;  // Возвращаем ID выбранной страницы без предобработки
     }
 
     /**
@@ -163,6 +187,19 @@ class Options
         );
         print '<p class="description">Проверить соединение с 1С Итилиум вы сможете с помощью логина и пароля на странице профиля пользователя</p>';
 
+    }
+
+    public function list_callback()
+    {
+        wp_dropdown_pages(
+            array(
+                'name'              => 'itilium_list',
+                'echo'              => 1,
+                'show_option_none'  => '&mdash; Выбрать &mdash;',
+                'option_none_value' => '0',
+                'selected'          => get_option('itilium_list')
+            )
+        );
     }
 
     public function details_callback()

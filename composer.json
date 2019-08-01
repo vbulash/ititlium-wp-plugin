@@ -2,7 +2,7 @@
   "autoload": {
     "psr-4": {
       "Backend\\": "Backend",
-      "Backend\\Settings\\": "Backend/Settings"
+      "Frontend\\": "Frontend"
     }
   }
 }

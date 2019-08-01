@@ -40,7 +40,12 @@ class Connection
         add_action('wp_ajax_itilium_test', [$this, 'test']);
     }
 
-    // TODO: отладить отображение сообщений
+    /**
+     * Упаковка полей сообщения в json
+     * Очищает обработанные поля
+     *
+     * @return string Упакованная строка полей сообщения
+    */
     public function notice()
     {
         if (!isset($this->message)) return null;  // Нечего отображать
@@ -57,8 +62,13 @@ class Connection
         return $result;
     }
 
-    private function connect()
+    public function connect()
     {
+        unset($this->context);
+        unset($this->message);
+        $this->messageHeader = 'Проверка соединения с 1С Итилиум';
+        $this->messageType = self::INFO;
+
         $this->detectPOST($this->URL, 'URL');
         $this->detectPOST($this->login, 'login');
         $this->detectPOST($this->password, 'password');
@@ -77,22 +87,53 @@ class Connection
             $this->messageType = self::ERROR;
             $this->message = error_get_last()['message'] . "<br/>Проверьте корректность URL, логина и пароля";
             return false;
+        } else {
+            $this->message = 'Успешное соединение с сервером';
+            return true;
+        }
+    }
+
+    public function getAll()
+    {
+        $connected = false;
+
+        // Нет контекста - не было предыдущей аутентификации
+        if(!isset($this->context)) {
+            $connected = $this->connect();
+            $this->notice();
+        } else {
+            $connected = true;
         }
 
-        return true;
+        if(!$connected) return false;   // Не удалось законнектиться к базе 1С Итилиум
+
+        // Можно получать данные
+        $data = file_get_contents($this->URL . 'getListIncidents', false, $this->context);
+        if(!$data) {
+            $this->messageType = self::ERROR;
+            $this->message = error_get_last()['message'];
+            return false;
+        }
+
+        return json_decode($data);
     }
 
     public function test()
     {
-        unset($this->context);
-        unset($this->message);
-        $this->messageHeader = 'Проверка соединения с 1С Итилиум';
-        $this->messageType = self::INFO;
+        $this->connect();
+        //echo $this->notice();
 
-        if ($this->connect()) {
-            $this->message = 'Успешное соединение с сервером';
+        // Отладка getAll
+        $resultSet = $this->getAll();
+        foreach ($resultSet as $row) {
+            $properties = get_object_vars($row);
+            error_log('Инцидент из 1С Итилиум');
+            foreach ($properties as $property => $value) {
+                error_log($property . ' = ' . $value);
+            }
         }
-        echo $this->notice();
+        //echo $this->notice();
+
         wp_die();
     }
 }

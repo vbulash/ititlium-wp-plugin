@@ -11,6 +11,17 @@
  * Back end registration
  */
 
+function mytheme_get_slugs() {
+    if ( $link = get_permalink() ) {
+        $link = str_replace( home_url( '/' ), '', $link );
+        if ( ( $len = strlen( $link ) ) > 0 && $link[$len - 1] == '/' ) {
+            $link = substr( $link, 0, -1 );
+        }
+        return explode( '/', $link );
+    }
+    return false;
+}
+
 function itilium_profile_parts($itilium_user, $itilium_password)
 {
     $itilium_URL = get_option('itilium_URL');
@@ -62,7 +73,7 @@ function itilium_profile_parts($itilium_user, $itilium_password)
                 <input type="button"
                        id="itilium_connect"
                        name="itilium_connect"
-                       value="<?php esc_html_e('Тест коннекта к Итилиуму', 'itilium'); ?>"
+                       value="<?php esc_html_e('Тест коннекта к 1С Итилиум', 'itilium'); ?>"
                        class="button button-secondary"
                 />
             </td>

@@ -21,7 +21,7 @@ jQuery(function ($) {
 
         $("#message_area").html('<div class="' + messageClasses(1) + '" id="informer">\n' +
             '<button type="button" id="informer_close" class="close" data-dismiss="alert">&times;</button>\n' +
-            '<p>Выполняется проверка соединения...</p>\n' +
+            '<p>Выполняется проверка соединения и обмен данными с 1С Итилиум...</p>\n' +
             '</div>');
 
         // Запуск нативного спиннера - https://make.wordpress.org/core/2015/04/23/spinners-and-dismissible-admin-notices-in-4-2/
