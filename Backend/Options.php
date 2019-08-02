@@ -22,6 +22,26 @@ class Options
     {
         add_action('admin_menu', array($this, 'add_plugin_page'));
         add_action('admin_init', array($this, 'page_init'));
+
+        add_filter('display_post_states', [$this, 'add_itilium_states'], 20, 2);
+    }
+
+    // Добавление новых состояний для страниц
+    public function add_itilium_states($states, $post)
+    {
+        // Страница со списком инцидентов 1С Итилиум
+        $list = get_option('itilium_list');
+        if (isset($list) && $post->ID == $list) {
+            $states[] = 'Список инцидентов 1С Итилиум';
+        }
+
+        // Страница единичного инцидента 1С Итилиум
+        $details = get_option('itilium_details');
+        if (isset($details) && $post->ID == $details) {
+            $states[] = 'Детали инцидента 1С Итилиум';
+        }
+
+        return $states;
     }
 
     /**
@@ -47,7 +67,9 @@ class Options
         $this->options = [
             'itilium_URL' => get_option('itilium_URL'),
             'itilium_list' => get_option('itilium_list'),
-            'itilium_details' => get_option('itilium_details')
+            'itilium_details' => get_option('itilium_details'),
+            'itilum_list_shortcode' => get_option('itilum_list_shortcode', '[itilum_list]'),
+            'itilum_details_shortcode' => get_option('itilum_details_shortcode', '[itilum_details]')
         ];
         ?>
         <div class="wrap">
@@ -68,68 +90,67 @@ class Options
      */
     public function page_init()
     {
-        register_setting(
-            'itilium_group',    // Группа опций
-            'itilium_URL',      // URL для связи с Итилиум
-            [$this, 'URL_sanitize']        // Очистка ввода
-        );
+        // Как хранится
+        $settings = [
+            ['option' => 'itilium_URL', 'sanitize' => 'URL_sanitize'],      // URL для связи с Итилиум
+            ['option' => 'itilium_list', 'sanitize' => 'list_sanitize'],    // Страница для списка инцидентов
+            ['option' => 'itilium_details', 'sanitize' => 'details_sanitize'],  // Страница для отображения единичного инцидента
+        ];
+        foreach ($settings as $setting) {
+            register_setting(
+                'itilium_group',    // Группа опций
+                $setting['option'],
+                [$this, $setting['sanitize']]   // Очистка ввода
+            );
+        }
 
-        register_setting(
-            'itilium_group',    // Группа опций
-            'itilium_list',      // Страница для списка инцидентов
-            [$this, 'list_sanitize']        // Очистка ввода
-        );
-
-        register_setting(
-            'itilium_group',    // Группа опций
-            'itilium_details',      // Страница для отображения единичного инцидента
-            [$this, 'details_sanitize']        // Очистка ввода
-        );
-
-        // Секция URL
-        //**************************************************************************
-        add_settings_section(
-            'itilium_URL_section_id', // ID
-            'URL для получения данных', // Title
-            [$this, 'print_itilium_URL_section_info'], // Callback
-            'itilium-setting-admin' // Page
-        );
-
-        // Поле ввода URL в секции itilium_URL_section_id
-        add_settings_field(
-            'URL',
-            'Itilium URL',
-            [$this, 'URL_callback'],
-            'itilium-setting-admin',
-            'itilium_URL_section_id'
-        );
-
-        // Секция страниц
-        //**************************************************************************
-        add_settings_section(
-            'itilium_page_section_id', // ID
-            'Страницы для отображения данных', // Title
-            [$this, 'print_itilium_pages_section_info'], // Callback
-            'itilium-setting-admin' // Page
-        );
-
-        // Поле ввода страницы списка инцидентов в секции itilium_page_section_id
-        add_settings_field(
-            'list',
-            'Страница отображения списка инцидентов:',
-            [$this, 'list_callback'],
-            'itilium-setting-admin',
-            'itilium_page_section_id'
-        );
-
-        // Поле ввода страницы отображения инцидента в секции itilium_page_section_id
-        add_settings_field(
-            'details',
-            'Страница отображения деталей инцидента:',
-            [$this, 'details_callback'],
-            'itilium-setting-admin',
-            'itilium_page_section_id'
-        );
+        // Как отображается (секции / поля)
+        $sections = [
+            [
+                'section' => 'itilium_URL_section_id',
+                'title' => 'URL для получения данных',
+                'callback' => 'print_itilium_URL_section_info',
+                'fields' => [
+                    ['field' => 'URL', 'title' => 'Itilium URL:', 'callback' => 'URL_callback'],
+                ]
+            ],
+            [
+                'section' => 'itilium_page_section_id',
+                'title' => 'Страницы для отображения данных',
+                'callback' => 'print_itilium_pages_section_info',
+                'fields' => [
+                    ['field' => 'list', 'title' => 'Страница отображения списка инцидентов:', 'callback' => 'list_callback'],
+                    ['field' => 'details', 'title' => 'Страница отображения деталей инцидента:', 'callback' => 'details_callback'],
+                ]
+            ],
+            [
+                'section' => 'itilium_shortcodes_section_id',
+                'title' => 'Короткие коды (shortcodes) для работы с 1С Итилиум',
+                'callback' => 'print_itilium_shortcodes_section_info',
+                'fields' => [
+                    ['field' => 'list', 'title' => 'Код отображения списка инцидентов:', 'callback' => 'list_shortcode_callback'],
+                    ['field' => 'details', 'title' => 'Код отображения инцидента:', 'callback' => 'details_shortcode_callback'],
+                ]
+            ]
+        ];
+        foreach ($sections as $section) {
+            add_settings_section(
+                $section['section'],
+                $section['title'],
+                [$this, $section['callback']],
+                'itilium-setting-admin'
+            );
+            $fields = $section['fields'];
+            foreach ($fields as $field) {
+                add_settings_field(
+                    $field['field'],
+                    $field['title'],
+                    [$this, $field['callback']],
+                    'itilium-setting-admin',
+                    $section['section']
+                );
+            }
+        }
     }
 
     /**
@@ -170,14 +191,23 @@ class Options
     // Подзаголовок секции URL
     public function print_itilium_URL_section_info()
     {
-        print 'Введите информацию для соединения с 1С Итилиум:';
+        print 'Введите информацию для соединения с 1С Итилиум';
     }
 
     // Подзаголовок секции страниц
     public function print_itilium_pages_section_info()
     {
-        print 'Выберите страницы сайта, которые будут использоваться для отображения информации из 1С Итилиум:';
+        print 'Выберите страницы сайта, которые будут использоваться для отображения информации из 1С Итилиум<br/>' .
+            'Данные страницы должны содержать короткие коды, указанные в секции ниже';
     }
+
+    // Подзаголовок секции шорткодов
+    public function print_itilium_shortcodes_section_info()
+    {
+        print 'Скопируйте короткие коды (shortcodes) для вставки в страницы для работы с 1С Итилиум';
+    }
+
+    // Основные функции отображения (callbacks) соответствующих полей
 
     public function URL_callback()
     {
@@ -193,11 +223,11 @@ class Options
     {
         wp_dropdown_pages(
             array(
-                'name'              => 'itilium_list',
-                'echo'              => 1,
-                'show_option_none'  => '&mdash; Выбрать &mdash;',
+                'name' => 'itilium_list',
+                'echo' => 1,
+                'show_option_none' => '&mdash; Выбрать &mdash;',
                 'option_none_value' => '0',
-                'selected'          => get_option('itilium_list')
+                'selected' => get_option('itilium_list')
             )
         );
     }
@@ -206,12 +236,38 @@ class Options
     {
         wp_dropdown_pages(
             array(
-                'name'              => 'itilium_details',
-                'echo'              => 1,
-                'show_option_none'  => '&mdash; Выбрать &mdash;',
+                'name' => 'itilium_details',
+                'echo' => 1,
+                'show_option_none' => '&mdash; Выбрать &mdash;',
                 'option_none_value' => '0',
-                'selected'          => get_option('itilium_details')
+                'selected' => get_option('itilium_details')
             )
         );
+    }
+
+    public function list_shortcode_callback()
+    {
+        ?>
+        <input type="text"
+               id="itilum_list_shortcode"
+               name="itilum_list_shortcode"
+               value="<?php echo esc_attr($this->options['itilum_list_shortcode']); ?>"
+               class="regular-text"
+               readonly
+        />
+        <?php
+    }
+
+    public function details_shortcode_callback()
+    {
+        ?>
+        <input type="text"
+               id="itilum_details_shortcode"
+               name="itilum_details_shortcode"
+               value="<?php echo esc_attr($this->options['itilum_details_shortcode']); ?>"
+               class="regular-text"
+               readonly
+        />
+        <?php
     }
 }

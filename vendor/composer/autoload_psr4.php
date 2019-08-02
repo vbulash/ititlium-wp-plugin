@@ -6,6 +6,6 @@ $vendorDir = dirname(dirname(__FILE__));
 $baseDir = dirname($vendorDir);
 
 return array(
-    'Backend\\Settings\\' => array($baseDir . '/Backend/Settings'),
+    'Frontend\\' => array($baseDir . '/Frontend'),
     'Backend\\' => array($baseDir . '/Backend'),
 );

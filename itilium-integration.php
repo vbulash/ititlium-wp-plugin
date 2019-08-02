@@ -19,6 +19,7 @@ require BASE_PATH . 'vendor/autoload.php';
 
 use Backend\Connection;
 use Backend\Options;
+use Frontend\Datatables;
 
 // Добавляем страницу настроек интеграции с Ititlium
 add_action('plugins_loaded', function () {
@@ -29,6 +30,8 @@ add_action('plugins_loaded', function () {
     include 'user-fields.php';  // Включаем дополнительные поля в профиль пользователя
 
     new Options();  // Пункт меню и страница настроек
+
+    //new Datatables();
 });
 
 add_action('admin_enqueue_scripts', function () {

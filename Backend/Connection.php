@@ -121,10 +121,11 @@ class Connection
     public function test()
     {
         $this->connect();
-        //echo $this->notice();
+        echo $this->notice();
 
         // Отладка getAll
-        $resultSet = $this->getAll();
+        /*
+        $resultSet = $this->getAll(); // -- массив объектов-записей
         foreach ($resultSet as $row) {
             $properties = get_object_vars($row);
             error_log('Инцидент из 1С Итилиум');
@@ -132,7 +133,8 @@ class Connection
                 error_log($property . ' = ' . $value);
             }
         }
-        //echo $this->notice();
+        echo $this->notice();
+        */
 
         wp_die();
     }

@@ -12,12 +12,28 @@ class Datatables
 {
     public function __construct()
     {
-        add_action('admin_enqueue_scripts', [$this, 'initScripts']);
+        add_action('admin_enqueue_scripts', [$this, 'initBootstrapScripts']);
+        add_action('admin_enqueue_scripts', [$this, 'initDatatableScripts']);
     }
 
-    public function initScripts()
+    public function initBootstrapScripts()
     {
-        if(!is_admin()) return;
+        wp_enqueue_script('jquery-ui-core');
+        wp_enqueue_script('jquery-ui-widget');
+        wp_enqueue_script('jquery-ui-mouse');
+        wp_enqueue_script('jquery-ui-accordion');
+        wp_enqueue_script('jquery-ui-autocomplete');
+        wp_enqueue_script('jquery-ui-selectmenu');
+        wp_enqueue_script('jquery-ui-slider');
+
+        wp_enqueue_style('bootstrap_css', 'https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css');
+        wp_enqueue_script('popper_js', 'https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js', array('jquery'));
+        wp_enqueue_script('bootstrap_js', 'https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js', array('jquery'));
+    }
+
+    public function initDatatableScripts()
+    {
+        if (!is_admin()) return;
 
         // TODO: Пристроить локализацию из //cdn.datatables.net/plug-ins/1.10.19/i18n/Russian.json
         // Набор взят для варианта Bootstrap 4 (http://cdn.datatables.net)
