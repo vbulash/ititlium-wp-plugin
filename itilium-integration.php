@@ -14,32 +14,92 @@ Author: Валерий Булаш
 Author URI: http://web-artisan.pro
 */
 
-define("BASE_PATH", plugin_dir_path(__FILE__));
-require BASE_PATH . 'vendor/autoload.php';
+if (!session_id())
+    session_start();
+$_SESSION['plugin_base_url'] = plugin_dir_url(__FILE__);
+$_SESSION['plugin_base_dir'] = plugin_dir_path(__FILE__);
+
+define('COMPOSER', 'true');
+if(!COMPOSER) {
+    try {
+        spl_autoload_register(function ($class) {
+            $dir = __DIR__ . DIRECTORY_SEPARATOR;   // $_SESSION['plugin_base_dir']
+            $namespace = __NAMESPACE__;
+            $className = $dir . $class . '.php';
+            $className = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $className);
+            if (file_exists($className)) // Защита от некорректного class_exists
+                include $className;
+        }, true);
+    } catch (Exception $e) {
+        error_log('Не удалось загрузить класс');
+    }
+} else {
+    require plugin_dir_path(__FILE__) . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php';
+}
 
 use Backend\Connection;
 use Backend\Options;
 use Frontend\Datatables;
+use Frontend\Details;
 
 // Добавляем страницу настроек интеграции с Ititlium
-add_action('plugins_loaded', function () {
-    if (!is_admin()) return;
+// Изменяем профиль пользователя
+// Инициализация фрронтальной части
+//add_action('plugins_loaded', function () {
+//add_action('after_setup_theme', function () {
 
+//$datatables = null;
+//add_action('wp_ajax_open_details', 'details');
+add_action('admin_post_open_details', 'details');
+add_action('admin_post_download_file', 'download_file');
+
+if (is_admin()) {    // В консоли
     (new Connection())->init();
 
     include 'user-fields.php';  // Включаем дополнительные поля в профиль пользователя
 
     new Options();  // Пункт меню и страница настроек
+} else {    // На фронте
+    new Datatables();
+    new Details('list_details');
+    //add_action('admin_post_open_details', 'details');
+    //$datatable = new Datatable('itilium_list');
+    //$datatable->init();
+}
+//});
 
-    //new Datatables();
-});
+function details()
+{
+    $detailsPage = get_option('itilium_details');
+    if (!$detailsPage) wp_die();
+
+    if (isset($_GET['UID']))
+        $_SESSION['UID'] = $_GET['UID'];
+
+    $page = get_permalink($detailsPage);
+    wp_redirect($page, 301);
+
+    //$incident = Datatables::details();
+    //wp_send_json_success($incident);
+    //wp_die();
+}
+
+function download_file()
+{
+    if (!isset($_GET['UID'])) wp_die();
+
+    $connection = new Connection();
+    $fileContent = $connection->getFile($_GET['UID']);
+    if (!$fileContent) {
+        $html = sprintf('<div id="message-area">%s</div>\n', $connection->createBootstrapAlert());
+        return $html;
+    }
+    wp_die();
+    return null;
+}
 
 add_action('admin_enqueue_scripts', function () {
-    if (!is_admin()) return;
-
-    //if(!is_page('profile')) return; // Только для профиля пользователя
-
-    if($GLOBALS['pagenow'] === 'profile.php') {
+    if ($GLOBALS['pagenow'] === 'profile.php') {
         wp_enqueue_script('jquery-ui-core');
         wp_enqueue_script('jquery-ui-widget');
         wp_enqueue_script('jquery-ui-mouse');
@@ -49,7 +109,7 @@ add_action('admin_enqueue_scripts', function () {
         wp_enqueue_script('jquery-ui-slider');
 
         wp_enqueue_script('itilium_test',
-            plugin_dir_url(__FILE__) . 'assets/js/itilium-test.js',
+            $_SESSION['plugin_base_url'] . 'assets/js/itilium-test.js',
             array('jquery'),
             false,
             true);

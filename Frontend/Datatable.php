@@ -2,34 +2,90 @@
 /**
  * Создан в PhpStorm.
  * Автор: vbulash
- * Дата и время: 2019-08-01 01:11
+ * Дата и время: 2019-08-04 12:04
  */
 
 namespace Frontend;
 
-//define('DATATABLES_NET', 'false');   // true - таблицы через Datatables.net, false - таблица HTML
-
 use Backend\Connection;
+use Services\PluginPart;
 
-// Wrapper для Datatables.net
-class Datatables
+/**
+ * Wrapper для Datatables.net
+ */
+class Datatable extends PluginPart
 {
-    private $recordset_script = null;
+    protected $recordset = null;
 
-    public function __construct()
+    /**
+     * Формирование html-кода для шорткода
+     * @return string Сгенерированный HTML-код
+     */
+    public function render()
     {
-        add_action('wp_enqueue_scripts', [$this, 'initBootstrapScripts']);
-        add_action('wp_enqueue_scripts', [$this, 'initDatatableScripts']);
-        add_action('wp_enqueue_scripts', [$this, 'initRecordsetScript']);
+        $this->recordset = $this->initRecordset();
+        if(!$this->recordset) {
+            $message = sprintf('<div id="message-area">%s</div>',
+                $this->getConnection()->getMessageHelper()->generateBootstrapAlert());
+            $this->getConnection()->getMessageHelper()->clear();
+            return $message;
+        }
 
-        add_shortcode('itilum_list', [$this, 'render']);
+        if (!isset($this->recordset))
+            return '<strong>Нет данных для отображения обращений 1С Итилиум</strong>';
+
+        if(!wp_get_current_user())
+            return '<strong>Текущий пользователь не вошел пользователем на сайт</strong>';
+
+        // Записать скрипты-источники - записей и столбцов
+        $recordsHtml = $this->createJSRecordset($this->recordset);
+        file_put_contents(
+            $_SESSION['plugin_base_url'] . 'assets/js/data/records.js',
+            $recordsHtml
+        );
+
+        $columnsHtml = $this->createJSColumns($this->recordset);
+        file_put_contents(
+            $_SESSION['plugin_base_url'] . 'assets/js/data/columns.js',
+            $columnsHtml
+        );
+
+        // Сгенерировать HTML таблицы данных
+        $html =
+            '<div id="message-area"></div>\n' .
+            '<table id="itilium_list">\n' .
+            '\t<thead>\n' .
+            '\t\t<tr>\n';
+
+        $headerHtml = '';
+        foreach ($this->recordset[0] as $column) {
+            $visible = true;
+            if (isset($column['visible']))
+                if (!$column['visible'])
+                    $visible = false;
+
+            if ($visible)
+                $headerHtml .= sprintf("\t\t\t<td><strong>%s</strong></td>\n", $column['title']);
+        }
+        $html .=
+            $headerHtml .
+            '\t\t</tr>\n' .
+            '\t</thead>\n' .
+            '\t<tbody></tbody>\n' .
+            '</table>';
+
+        return $html;
     }
 
-    public function initBootstrapScripts()
+    /**
+     * Регистрация системных скриптов js и стилей
+     */
+    public function registerSystemScripts()
     {
         // Работаем только на странице со списком инцидентов
         if (get_the_ID() != get_option('itilium_list')) return;
 
+        // jQuery
         wp_enqueue_script('jquery-ui-core');
         wp_enqueue_script('jquery-ui-widget');
         wp_enqueue_script('jquery-ui-mouse');
@@ -38,19 +94,15 @@ class Datatables
         wp_enqueue_script('jquery-ui-selectmenu');
         wp_enqueue_script('jquery-ui-slider');
 
-
+        // Bootstrap 4
         wp_enqueue_style('bootstrap_css', 'https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css');
         wp_enqueue_script('popper_js', 'https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js', array('jquery'));
         wp_enqueue_script('bootstrap_js', 'https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js', array('jquery'));
-    }
 
-    // Скрипты Datatables.net + пользовательский JavaScript (itilium-list)
-    public function initDatatableScripts()
-    {
-        // Работаем только на странице со списком инцидентов
-        if (get_the_ID() != get_option('itilium_list')) return;
-
+        // Datatables.net
         // Набор взят для варианта Bootstrap 4 (http://cdn.datatables.net)
+
+        // JS-скрипты Datatables.net
         $scripts = [
             // Release
             'jquery.dataTables' => 'https://cdn.datatables.net/1.10.18/js/jquery.dataTables.min.js',
@@ -95,6 +147,7 @@ class Datatables
             wp_enqueue_script($script_group, $javascript, array('bootstrap_js', 'jquery'), false, true);
         }
 
+        // Стили Datatables.net
         $styles = [
             // Release
             'dataTables.bootstrap4' => 'https://cdn.datatables.net/1.10.18/css/dataTables.bootstrap4.min.css',
@@ -136,58 +189,39 @@ class Datatables
         }
     }
 
-    public function initRecordsetScript()
+    /**
+     * Регистрация прикладных скриптов js и стилей
+     */
+    public function registerAppScripts()
     {
-        /*
-        if (defined('DATATABLES_NET')) {
-            wp_enqueue_script('itilium_records',
-                $_SESSION['plugin_base_url'] . 'assets/data/records.js',
-                null, false, true
-            );
-
-            wp_enqueue_script('itilium_columns',
-                $_SESSION['plugin_base_url'] . 'assets/data/columns.js',
-                null, false, true
-            );
-
-            wp_enqueue_script('itilium_list',
-                $_SESSION['plugin_base_url'] . 'assets/js/itilium-list.js',
-                array('jquery'),
-                false,
-                true);
-        }
-        */
-        wp_enqueue_script('itilium_details',
-            $_SESSION['plugin_base_url'] . 'assets/js/itilium-details.js',
+        wp_enqueue_script('itilium_records', $_SESSION['plugin_base_url'] . 'assets/js/data/records.js');
+        wp_enqueue_script('itilium_columns', $_SESSION['plugin_base_url'] . 'assets/js/data/columns.js');
+        wp_enqueue_script('itilium_list',
+            $_SESSION['plugin_base_url'] . 'assets/js/itilium-list.js',
             array('jquery'),
             false,
             true);
     }
 
-    public function render()
+    /**
+     * Сформировать источник данных для последующего использования частью плагина
+     * @return mixed Источник данных
+     */
+    public function initRecordset()
     {
-        // Работаем только на странице со списком инцидентов
-        if (get_the_ID() != get_option('itilium_list')) return null;
+        // Получить исходные данные
+        $this->setConnection(new Connection());
+        $source = $this->getConnection()->getAll(); // -- массив исходных объектов-записей
+        if (!$source) return false;
 
-        $html = '';
-
-        $connection = new Connection();
-        $sourceRS = json_decode($connection->getAll()); // -- массив исходных объектов-записей
-        if (!$sourceRS) {
-            $html .= sprintf('<div id="message-area">%s</div>\n', $connection->createBootstrapAlert());
-            return $html;
-        }
-
-        $targetRS = [];
-        foreach ($sourceRS as $properties) {
+        $this->recordset = [];
+        foreach ($source as $properties) {
             $fields = [
-                ['name' => 'UID', 'value' => $properties->UID, 'title' => '', 'hidden' => true],
-                ['name' => 'number', 'value' => $properties->Number, 'title' => 'Номер', 'hidden' => true],
-                ['name' => 'date', 'value' => $properties->Data, 'title' => 'Дата регистрации', 'hidden' => true],
-                ['name' => 'number_date', 'value' => '<a href="' . esc_url(admin_url('admin-post.php')) .
-                    '?action=open_details&UID=' . $properties->UID . '">' .
-                    $properties->Number . ' от ' . $properties->Data .
-                    '</a>', 'title' => 'Обращение'],
+                ['name' => 'number', 'value' => $properties->Number, 'title' => 'Номер', 'visible' => false],
+                ['name' => 'date', 'value' => $properties->Data, 'title' => 'Дата регистрации', 'visible' => false],
+                ['name' => 'number_date',
+                    'value' => sprintf("<a href='%s'>%s от %s</a>",
+                        $properties->Number, $properties->Number, $properties->Data), 'title' => 'Обращение'],
                 ['name' => 'topic', 'value' => $properties->Topic, 'title' => 'Тема'],
                 ['name' => 'description', 'value' => $properties->Description, 'title' => 'Описание'],
                 ['name' => 'status', 'value' => $properties->Status->Name, 'title' => 'Состояние'],
@@ -196,98 +230,66 @@ class Datatables
                 ['name' => 'category', 'value' => $properties->Category->Name, 'title' => 'Категория'],
                 ['name' => 'closure_plan', 'value' => $properties->TheRegulatoryClosureDate, 'title' => 'Нормативная дата закрытия'],
                 ['name' => 'closure_fact', 'value' => $properties->TheActualClosingDate, 'title' => 'Фактическая дата закрытия'],
-                ['name' => 'files', 'value' => ($properties->ThereAreFiles ? '&times;' : ''), 'title' => 'Файлы', 'classes' => 'text-align: center;']
+                ['name' => 'files', 'value' => ($properties->ThereAreFiles ? '&times;' : ''), 'title' => 'Файлы']
             ];
-            $targetRS[] = $fields;
+            $this->recordset[] = $fields;
         }
 
-        if (defined('DATATABLES_NET')) {
-            $rsHtml =
-                "window.recordset = \n" .
-                "[\n";
-            $row = [];
-            foreach ($targetRS as $rows) {
-                $rowHtml = "[";
-                $cells = [];
-                foreach ($rows as $property) {
-                    $cells[] = sprintf("\n{\"%s\": \"%s\"}", $property['name'], $property['value']);
-                }
-                $rowHtml .= implode(',', $cells);
-                $row[] = $rowHtml . "\n]\n";
-            }
-            $rsHtml .= implode(',', $row);
-            $rsHtml .= "];";
-            $this->recordset_script = $rsHtml;
-            //add_action('wp_enqueue_scripts', [$this, 'initRecordsetScript']);
+        return $this->recordset;
+    }
 
+    private function createJSRecordset()
+    {
+        if (!isset($this->recordset)) return 'window.recordset = null;';
 
-            $html .= <<<'EOH'
-            <table id="itilium_list" class="display" style="width:100%">
-                <thead>
-                <tr>
-                    <th>number</th>
-                    <th>date</th>
-                    <th>number_date</th>
-                    <th>topic</th>
-                    <th>description</th>
-                    <th>status</th>
-                    <th>service</th>
-                    <th>service_pack</th>
-                    <th>category</th>
-                    <th>closure_plan</th>
-                    <th>files</th>
-                </tr>
-                </thead>
-                <tbody></tbody>
-                <tfoot>
-                <tr>
-                    <th>number</th>
-                    <th>date</th>
-                    <th>number_date</th>
-                    <th>topic</th>
-                    <th>description</th>
-                    <th>status</th>
-                    <th>service</th>
-                    <th>service_pack</th>
-                    <th>category</th>
-                    <th>closure_plan</th>
-                    <th>files</th>
-                </tr>
-                </tfoot>
-            </table>
-EOH;
-        } else {
-            $html .=
-                "<div id=\"message-area\"></div>\n" .
-                "<table id=\data_table\" class=\"display\" style=\"width:100%\">\n" .
-                "<thead>\n" .
-                "<tr>\n";
-            foreach ($fields as $field) {
-                if (!isset($field['hidden']) || !$field['hidden']) {
-                    $html .= sprintf(
-                        "<td style=\"background-color: lightgrey;\"><strong>%s</strong></td>",
-                        $field['title']);
-                }
+        $html =
+            "window.recordset = \n" .
+            "[\n";
+        $row = [];
+        foreach ($this->recordset as $record) {
+            $rowHtml = "[";
+            $cells = [];
+            foreach ($record as $property) {
+                $cells[] = sprintf("\n{\"%s\": \"%s\"}", $property['name'], $property['value']);
             }
-            $html .=
-                '</tr>' .
-                '</thead>' .
-                '<tbody>';
-            foreach ($targetRS as $record) {
-                $html .= '<tr>';
-                foreach ($fields as $field) {
-                    if (!isset($field['hidden']) || !$field['hidden']) {
-                        $html .= sprintf('<td class="cell" style="%s">%s</td>',
-                            isset($field['classes']) ? $field['classes'] : '',
-                            $field['value']);
-                    }
-                }
-                $html .= '</tr>';
-            }
-            $html .=
-                '</tbody>' .
-                '</table>';
+            $rowHtml .= implode(',', $cells);
+            $row[] = $rowHtml . "\n]\n";
         }
+        $html .= implode(',', $row);
+        $html .= "];";
+
+        return $html;
+    }
+
+    private function createJSColumns()
+    {
+        if (!isset($this->recordset)) return 'window.columns = null;';
+
+        $html =
+            "window.columns = \n" .
+            "[\n";
+        $row = [];
+        foreach ($this->recordset as $record) {
+            $rowHtml = "[";
+            $columns = [];
+            foreach ($record as $property) {
+                $items = [];
+                $items[] = sprintf('"title": "%s\"', $property['title']);
+                $items[] = sprintf('"data": "%s\"', $property['name']);
+                $visible = true;
+                if (isset($property['visible']))
+                    if (!$property['visible'])
+                        $visible = false;
+                $items[] = sprintf("\"visible\": \"%s\"", $visible);
+
+                $columns[] = sprintf("\n{%s}", implode(',', $items));
+            }
+            $rowHtml .= implode(',', $columns);
+            $row[] = $rowHtml . "\n]\n";
+        }
+        $html .= implode(',', $row);
+        $html .= "];";
+
         return $html;
     }
 }
